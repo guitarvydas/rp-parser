@@ -1,5 +1,5 @@
 (in-package :rp-parser)
 
 (defmethod parse ((self parser) token-stream)
-  (initially self token-stream)
-  (<rp> self))
+  (rpa:initially self token-stream)
+  (rp-parser::<rp> self))

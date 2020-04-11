@@ -11,22 +11,22 @@
   (let ((tok (next-token p)))
     (if (and (eq :symbol (token-kind tok))
 	     (all-upcase? (token-text tok)))
-	+succeed+
-      +fail+)))
+	rpa:+succeed+
+      rpa:+fail+)))
 
 (defun all-upcase? (str)
   (string= str (string-upcase str)))
 
 (defmethod lookahead-any-char? ((self parser))
-  (let ((tok (next-token self)))
+  (let ((tok (rpa:next-token self)))
     (if (or
-	 (eq :character (token-kind tok))
-	 (and (eq :symbol (token-kind tok))
-	      (= 1 (length (token-text tok)))))
-       +succeed+
-      +fail+)))
+	 (eq :character (rephrase:token-kind tok))
+	 (and (eq :symbol (rephrase:token-kind tok))
+	      (= 1 (length (rephrase:token-text tok)))))
+       rpa:+succeed+
+      rpa:+fail+)))
 
 (defmethod input-any-character ((p parser))
-  (if (eq +succeed+ (lookahead-any-char? p))
+  (if (eq rpa:+succeed+ (lookahead-any-char? p))
       (accept p)
      (rp-parse-error p (format nil "expected any character (or a symbol of length 1)"))))

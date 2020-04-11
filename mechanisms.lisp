@@ -1,14 +1,14 @@
-(in-package :rp-parser)
+(in-package :rpa)
 
 (defmethod initially ((self parser) token-list)
-  (let ((empty-token (make-token :kind :empty :text "" :line 0 :position 0)))
+  (let ((empty-token (rephrase:make-token :kind :empty :text "" :line 0 :position 0)))
     (setf (next-token self) (pop token-list))
     (setf (accepted-token self) empty-token)
     (setf (token-stream self) token-list)))
 
 (defmethod advance-next-token ((self parser))
   (if (null (token-stream self))
-      (setf (next-token self) (make-token :kind :eof :text "generated eof" :line 0 :position 0))
+      (setf (next-token self) (rephrase:make-token :kind :eof :text "generated eof" :line 0 :position 0))
       (setf (next-token self) (pop (token-stream self)))))
   
 (defmethod accept ((self parser))
@@ -35,6 +35,13 @@
        +succeed+
       +fail+)))
 
+(defmethod lookahead-symbol? ((self parser) str)
+  (let ((tok (next-token self)))
+    (if (and (eq :character (token-kind tok))
+	      (string= str (token-text tok)))
+       +succeed+
+      +fail+)))
+
 (defmethod lookahead? ((self parser) kind)
   (let ((tok (next-token self)))
     (if (eq kind (token-kind tok))
@@ -44,7 +51,15 @@
 (defmethod input-char ((self parser) c)
   (if (eq +succeed+ (lookahead-char? self c))
       (accept self)
-     (rp-parse-error (format nil "expected character ~a" c))))
+     (rp-parse-error self (format nil "expected character ~a" c))))
+
+(defmethod input-symbol ((self parser) str)
+  (flet ((nope () (rp-parse-error (format nil "expected :symbol with text ~a" str))))
+    (if (lookahead? :symbol)
+	(if (string= str (rephrase:token-text (rpa:next-token self)))
+	   (accept)
+	  (nope))
+	(nope))))
 
 (defmethod input ((self parser) kind)
   (let ((tok (next-token self)))
@@ -55,4 +70,15 @@
 (defmethod emit-string ((self parser) fmtstr &rest args)
   (let ((out (output-string-stream self)))
     (apply 'cl:format out fmtstr args)))
+
+
+(defmethod call-rule ((self parser) func)
+  (funcall func))
+
+(defmethod call-predicate ((self parser) func)
+  (let ((%result (funcall func)))
+    %result))
+
+(defmethod call-external ((self parser) func)
+  (funcall func))
 

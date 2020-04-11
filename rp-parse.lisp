@@ -1,4 +1,4 @@
-(in-package :rp-parser)
+(in-package :rpa)
 
 (defconstant +succeed+ :success)
 (defconstant +fail+ nil)

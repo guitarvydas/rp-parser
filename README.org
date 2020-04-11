@@ -1,8 +1,9 @@
 * intro
-  RP-PARSE - a minimal syntax that parses RP atomic tokens and emit new tokens
+  RP-PARSE - a minimal syntax that parses RP atomic tokens and creates an output string
   creates a Lisp file that can parse RP atomic syntax
   parser.lisp parses input rpa syntax and returns a Lisp program (in output-string-stream p) which
     is a parser (specified by the input rpa code)
+  (see READING.txt for commentary)
 * operations:
   - 'c' accept a :character token with text 'c' (else error)
   - ?'c' look ahead if succeed if next-token is a :character token with text 'c'
@@ -11,14 +12,14 @@
   - KIND/str accept if token is given kind and its text matches the given (lower case) str (else error)
   - ?KIND/str lookahead and succeed if next token has kind given by KIND and text given by str (no error)
   - @<name> - call parsing rule with given name
-  - &<pred> - call parsing predicate with name pred, it must return +ok+ or +fail+ (predicate can be used in a choice rules - see below)
+  - &<pred> - call parsing predicate with name pred, it must return `+ok+` or `+fail+` (predicate can be used in a choice rules - see below)
   - <name>  - call an external mechanism function, return value is ignored
   - {...} - cycle (loop)
   - >     - exit cycle
   - =<name> - define a rule with given name ("rule")
   - -<name> - define a parsing predicate with given name
-  - >> ^ok     - return +ok+ from a parsing predicate
-  - >> ^fail   - return +fail+ from a parsing predicate
+  - >> ^ok     - return `+ok+` from a parsing predicate
+  - >> ^fail   - return `+fail+` from a parsing predicate
   - >>         - return from a parsing rule (return value is not specified and is ignored by caller)
   - [       - begin a choice (if-then-else / COND), first item after '[' must return +ok+ or +fail+
   - |       - choice alternate, first item after '[' must return +ok+ or +fail+
@@ -28,15 +29,24 @@
               must return two things - (1) a token (or nothing (not-a-token, NIL)), (2) the remaining list of tokens to be filtered
               the returned tokens are collected and become the token-stream for the parser, for succeeding operations
 	      first copies token-stream from parser works on that list (allowing dropping of tokens)
+  - .  accept any token
 
   NB - note that all operations begin with a single-character "left-handle" - making it easy to parse this syntax
   NB - >> is overloaded, but can only be one of 3 variants (which remain easy to parse)
   NB - this syntax is barely human readable - it is meant as an "assembler" only for creating more-readable DSLs
 
 * examples
-** PEG "a*" is written as {[ ?SYMBOL/a SYMBOL/a | * > ]}
-** PEG "a+" is written as SYMBOL/a {[ ?SYMBOL/a SYMBOL/a | * > ]}
-** it should be possible to write filters that provide less-unwieldly syntaxes for the above (A* and a+), the filters would produce low-level RP syntax
+** see READING.txt and test.lisp
+** 
+   PEG-style "a*" is written as `{[ ?SYMBOL/a SYMBOL/a | * > ]}`
+   PEG-style "a+" is written as `SYMBOL/a {[ ?SYMBOL/a SYMBOL/a | * > ]}`
+
+   It should be possible to write filters that provide less-unwieldly syntaxes for the above (e.g. A* and a+),
+     the filters would produce low-level RPA syntax.
+
+   The point of RPA is to provide access to the most atomic operations (of parsing).  
+     Then, write DSL transpilers, composed of the atomic operations to provide more human-readable DSLs
+
 * build
 #+name: rpa
 #+begin_src lisp :results output
@@ -50,8 +60,40 @@
 
 
 #+RESULTS: rpa
-: To load "rp-parser":
-:   Load 1 ASDF system:
-:     rp-parser
-: ; Loading "rp-parser"
-: [package rp-parser]..
+#+begin_example
+(defmethod junk-rule ((p parser))
+(input-char p #\a)
+(parser-success? (lookahead-char? p #\a))
+(input p :AAA)
+(parser-success? (lookahead? p :BBB))
+(input-symbol p "ddd")
+(parser-success? (look-symbol? p "fff"))
+(call-rule p #'rule)
+(parser-success? (call-predicate p #'pred))
+(call-external p #'external-call)
+(loop
+(cond
+((parser-success? (call-predicate p #'pred))(call-rule p #'rule));choice clause
+((parser-success? (call-predicate p #'pred))
+(call-rule p #'rule)
+);choice alt
+( t 
+(return)
+);choice alt
+);choice
+
+) ;;loop
+
+) ; rule
+
+(defmethod delete-whitespace ((p parser))
+(cond
+((parser-success? (lookahead? p :SPACE))(input p :SPACE));choice clause
+( t 
+(call-external p #'accept-and-emit-token)
+);choice alt
+);choice
+
+) ; rule
+
+#+end_example

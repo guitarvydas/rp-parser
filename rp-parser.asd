@@ -14,6 +14,10 @@
                                      (:file "parse" :depends-on ("package" "rp-parse"))
                                      (:file "parser" :depends-on ("package" "rp-parse"
 									    "mechanisms" "unexported-mechanisms"))
+                                     (:file "scan-and-parse" :depends-on ("package" "rp-parse" 
+								"mechanisms" "unexported-mechanisms"
+								"parse"
+								"parser"))
                                      (:file "test" :depends-on ("package" "rp-parse" 
 								"mechanisms" "unexported-mechanisms"
 								"parse"
